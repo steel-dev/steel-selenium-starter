@@ -14,7 +14,8 @@ pip install -r requirements.txt
 
 ## Quick start
 
-The example script in `src/main.py` shows you how to:
+The example script in `main.py` shows you how to:
+
 - Create and manage a Steel browser session
 - Connect Selenium to the session
 - Navigate to a website (Hacker News in this example)
@@ -25,15 +26,17 @@ The example script in `src/main.py` shows you how to:
 To run it:
 
 1. Create a `.env` file in the root directory:
+
 ```bash
 STEEL_API_KEY=your_api_key_here
 ```
 
-2. Replace `your_api_key_here` with your Steel API key. Don't have one? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
+1. Replace `your_api_key_here` with your Steel API key. Don't have one? Get a free key at [app.steel.dev/settings/api-keys](https://app.steel.dev/settings/api-keys)
 
-3. Run the script:
+2. Run the script:
+
 ```bash
-python src/main.py
+python main.py
 ```
 
 ## Writing your automation
@@ -59,11 +62,12 @@ The template includes common Steel configurations you can enable:
 ```python
 session = client.sessions.create(
     use_proxy=True,              # Use Steel's proxy network
-    solve_captcha=True,          # Enable CAPTCHA solving
     session_timeout=1800000,     # 30 minute timeout (default: 15 mins)
-    user_agent='custom-ua'       # Custom User-Agent
 )
 ```
+
+_Note:_
+Certain features like captcha solving, proxies, and cookie management are not supported with selenium sessions yet. Check out the docs for more details on this [here](https://docs.steel.dev/overview/guides/connect-with-selenium).
 
 ## Error handling
 
