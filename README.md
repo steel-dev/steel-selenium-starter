@@ -12,6 +12,12 @@ Clone the repository and install dependencies:
 ```bash
 git clone https://github.com/steel-dev/steel-selenium-starter
 cd steel-selenium-starter
+
+# Create and activate virtual environment (recommended)
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
