@@ -4,15 +4,35 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
+from selenium.webdriver.remote.remote_connection import RemoteConnection
 from steel import Steel
 import http.client
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Initialize Steel client with the API key from environment variables
+# Check if the Steel API key is set in the environment variables, and raise an error if not
 STEEL_API_KEY = os.getenv('STEEL_API_KEY')
+if not STEEL_API_KEY:
+    raise EnvironmentError("STEEL_API_KEY environment variable not set.")
+
+# Initialize Steel client with the API key from environment variables
 client = Steel(steel_api_key=STEEL_API_KEY)
+
+# Helper Class: Custom Remote Connection class to include Steel-specific headers
+class CustomRemoteConnection(RemoteConnection):
+    _session_id = None
+
+    def __init__(self, remote_server_addr: str, session_id: str):
+        super().__init__(remote_server_addr)
+        self._session_id = session_id
+
+    def get_remote_connection_headers(self, parsed_url, keep_alive=False):
+        headers = super().get_remote_connection_headers(parsed_url, keep_alive)
+        headers.update({'steel-api-key': os.environ.get("STEEL_API_KEY")})
+        headers.update({'session-id': self._session_id})
+        return headers
+
 
 def main():
     session = None
@@ -21,7 +41,7 @@ def main():
     try:
         print("Creating Steel session...")
 
-        # Create a new Steel session with all available options
+        # Create a new Steel session with is_selenium=True
         session = client.sessions.create(
             is_selenium=True,              # Enable Selenium mode (required)
             # session_timeout=1800000,     # Session timeout in ms (default: 15 mins, max: 60 mins)
@@ -31,25 +51,14 @@ def main():
 You can view the session live at {session.session_viewer_url}
         """)
 
-        # Create a custom HTTP connection class to handle Steel headers
-        class SteelHTTPConnection(http.client.HTTPConnection):
-            def __init__(self, *args, **kwargs):
-                super().__init__(*args, **kwargs)
-                
-            def putheader(self, header, *values):
-                if header.lower() == 'host':
-                    super().putheader('session-id', session.id)
-                    super().putheader('steel-api-key', STEEL_API_KEY)
-                super().putheader(header, *values)
-
-        # Configure Selenium to use Steel's Selenium endpoint
-        options = webdriver.ChromeOptions()
+        # Connect to the session via Selenium's WebDriver using the CustomRemoteConnection class
         driver = webdriver.Remote(
-            command_executor='http://connect.steelbrowser.com/selenium',
-            options=options,
-            http_handler=SteelHTTPConnection
+            command_executor=CustomRemoteConnection(
+                remote_server_addr='http://connect.steelbrowser.com/selenium',
+                session_id=session.id
+            ),
+            options=webdriver.ChromeOptions()
         )
-
         print("Connected to browser via Selenium")
 
         # ============================================================
@@ -59,7 +68,7 @@ You can view the session live at {session.session_viewer_url}
         # Example script - Navigate to Hacker News and extract the top 5 stories
         print("Navigating to Hacker News...")
         driver.get("https://news.ycombinator.com")
-        
+
         # Wait for the story elements to load
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CLASS_NAME, "titleline"))
@@ -68,12 +77,15 @@ You can view the session live at {session.session_viewer_url}
         # Extract the top 5 stories
         stories = []
         story_elements = driver.find_elements(By.CLASS_NAME, "athing")[:5]
-        
+
         for element in story_elements:
-            title_element = element.find_element(By.CLASS_NAME, "titleline").find_element(By.TAG_NAME, "a")
-            subtext = element.find_element(By.XPATH, "following-sibling::tr[1]")
-            score = subtext.find_element(By.CLASS_NAME, "score") if subtext.find_elements(By.CLASS_NAME, "score") else None
-            
+            title_element = element.find_element(
+                By.CLASS_NAME, "titleline").find_element(By.TAG_NAME, "a")
+            subtext = element.find_element(
+                By.XPATH, "following-sibling::tr[1]")
+            score = subtext.find_element(By.CLASS_NAME, "score") if subtext.find_elements(
+                By.CLASS_NAME, "score") else None
+
             stories.append({
                 'title': title_element.text,
                 'link': title_element.get_attribute('href'),
@@ -97,7 +109,7 @@ You can view the session live at {session.session_viewer_url}
         # Cleanup: Gracefully close browser and release session when done
         if driver:
             driver.quit()
-            print("Browser closed")
+            print("Driver closed")
 
         if session:
             print("Releasing session...")
@@ -105,6 +117,7 @@ You can view the session live at {session.session_viewer_url}
             print("Session released")
 
         print("Done!")
+
 
 if __name__ == "__main__":
     main()
