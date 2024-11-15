@@ -2,7 +2,7 @@
 
 This template shows you how to use Steel with Selenium to run browser automations in the cloud. It includes session management, error handling, and a basic example you can customize.
 
-[![Run on Repl.it](https://replit.com/badge/github/steel-dev/steel-selenium-starter)](https://replit.com/@steel-dev/steel-selenium-starter)
+[![Run on Repl.it](https://replit.com/badge/github/steel-dev/steel-selenium-starter)](https://replit.com/@steel-dev/steel-selenium-starter?v=1#README.md)
 
 
 ## Installation
